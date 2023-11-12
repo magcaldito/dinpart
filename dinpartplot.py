@@ -17,39 +17,6 @@ def modulo(v):
     modulo=(v[0]**2+v[1]**2)**0.5
     return modulo
 
-# a=np.array((2,5))
-# b=np.array((3,2))
-
-# print (a,b,a+b,a-b)
-
-# fig = plt.figure(figsize=(8,8))
-# ax = fig.add_subplot(1, 1, 1)
-# ax.spines['left'].set_position(('data',0))
-# ax.spines['bottom'].set_position(('data',0))
-# ax.spines['right'].set_color('none')
-# ax.spines['top'].set_color('none')
-# ax.xaxis.set_ticks_position('bottom')
-# ax.yaxis.set_ticks_position('left')
-# plt.xlim(-10,10)
-# plt.ylim(-10,10)
-
-# plotvector(a)
-# plotvectorpunto(a,b)
-# plotvectorpunto(a-b,b)
-# #plotvectorpunto(b,a)
-
-# #plotvector(b)
-# #plotvector(a+b)
-# #plotvector(a-b)
-
-# plt.show()
-
-t1=(2,3)
-t2=(1,1)
-l1=[2,3]
-l2=[1,1]
-print(t1,t2,t1+t2)
-print(l1,l2,l1+l2)
 
 G= 6.674E-11            # Gravity constant 
 ME=5.97219E24           # Mass of the earth
@@ -60,12 +27,12 @@ DEM=3.844E8             # Distance to the moon
 VES= 29784.8            # Velocity earth around sun
 VME=1023                # Velocity moon around earth
 
-escala=0.0000001
-
+scmoon=0.00000000001    # Scale f moon
+sc=5E-19
 
 n=8                     # no. particles
-nt=500                  # no. time steps
-ts=5000                 # time step
+nt=1000                  # no. time steps
+ts=40000                 # time step
 t=np.zeros(nt)          # time vector
 
 m=np.zeros(n)           # particle masses vector  
@@ -83,14 +50,20 @@ print('---------------------------------')
 for i in range (nt):
     t[i]=i*ts
 
-for i in range(n):          # Condciones iniciales aleatorias
-    m[i]=random.uniform(8000,12000)*ME
-    d[i][0]=[random.uniform(0.1,0.2)*DES,random.uniform(0.1,0.2)*DES]
-    v[i][0]=[random.uniform(-1,1)*VES,random.uniform(-1,1)*VES]
-    print(d[i][0][1])
+# for i in range(n):            # Random initial conditions
+#     m[i]=random.uniform(8000,12000)*ME
+#     d[i][0]=[random.uniform(0.1,0.2)*DES,random.uniform(0.1,0.2)*DES]
+#     v[i][0]=[random.uniform(-1,1)*VES,random.uniform(-1,1)*VES]
+#     print(d[i][0][1])
+
+for i in range (n):            # Symetric initial conditions
+    m[i]=MS/20
+    d[i][0]=[DES*np.sin(2*np.pi*i/n),DES*np.cos(2*np.pi*i/n)]
+    v[i][0]=[6*VME*(-np.cos(2*np.pi*i/n)),6*VME*np.sin(2*np.pi*i/n)]
+    print(d[i,0], v[i,0])
 
 
-# m[0]=MS                   # Condiciones iniciales Sistema Sol, Tierra, Luna
+# m[0]=MS                   # Sun, Earth, Moon system initial conditions
 # m[1]=ME
 # m[2]=MM
 
@@ -126,24 +99,11 @@ for i in range(n):
         plt.plot(x,y,',')
 plt.show()
 
-#        print(i,k,f[i,k],d[i,k])
-#plt.show()
-
-# for i in range(n):
-#     plotvector(d[i,0])
-# plt.show()
-
-# for i in range(n):
-#     plotvector(f[i,0])
-# plt.show()
-
-# for i in range(n):
-#     plotvectorpunto(f[i,0]*escala,d[i,0])
-#     plotvector(d[i,0])
-# plt.show()
-
-#print(t)
-#print(v)
-#print(a[0][0])
-#print(G, ME, MS)
+for i in range(n):
+    for j in range(nt):
+        x=d[i,j][0]
+        y=d[i,j][1]
+        plt.plot(x,y,',')
+        plotvectorpunto(f[i,j]*sc,d[i,j])
+plt.show()
 
