@@ -2,54 +2,25 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import pygame
 
-def plotvector(v):
-    x=np.array((0,v[0]))
-    y=np.array((0,v[1]))
-    plt.plot(x,y)
-    
-def plotvectorpunto(v,punto):
-    x=np.array((punto[0],punto[0]+v[0]))
-    y=np.array((punto[1],punto[1]+v[1]))
-    plt.plot(x,y)
+pygame.init()
+# pygame.font.init()
+# pygame.mixer.init()
 
-def modulo(v):
-    modulo=(v[0]**2+v[1]**2)**0.5
-    return modulo
+white=pygame.Color(255,255,255)
+green=pygame.Color(0,255,0)        
+yellow=pygame.Color(255,255,0)      
+cyan=pygame.Color(0,255,255)      
+blue=pygame.Color(0,0,255)
+black=pygame.Color(0,0,0)
+pink=pygame.Color(255,100,100)
+grey=pygame.Color(50,50,50)
+ANCHOP=1020
+ALTOP=710
 
-# a=np.array((2,5))
-# b=np.array((3,2))
-
-# print (a,b,a+b,a-b)
-
-# fig = plt.figure(figsize=(8,8))
-# ax = fig.add_subplot(1, 1, 1)
-# ax.spines['left'].set_position(('data',0))
-# ax.spines['bottom'].set_position(('data',0))
-# ax.spines['right'].set_color('none')
-# ax.spines['top'].set_color('none')
-# ax.xaxis.set_ticks_position('bottom')
-# ax.yaxis.set_ticks_position('left')
-# plt.xlim(-10,10)
-# plt.ylim(-10,10)
-
-# plotvector(a)
-# plotvectorpunto(a,b)
-# plotvectorpunto(a-b,b)
-# #plotvectorpunto(b,a)
-
-# #plotvector(b)
-# #plotvector(a+b)
-# #plotvector(a-b)
-
-# plt.show()
-
-t1=(2,3)
-t2=(1,1)
-l1=[2,3]
-l2=[1,1]
-print(t1,t2,t1+t2)
-print(l1,l2,l1+l2)
+pygame.display.set_caption('Particle Dynamics')
+ventana= pygame.display.set_mode((ANCHOP,ALTOP))
 
 G= 6.674E-11            # Gravity constant 
 ME=5.97219E24           # Mass of the earth
@@ -59,23 +30,62 @@ DES= 1.50E11            # Distance to the sun
 DEM=3.844E8             # Distance to the moon
 VES= 29784.8            # Velocity earth around sun
 VME=1023                # Velocity moon around earth
+DNS=1410/1000           # Sun density
+DNE=5510                # Earth density
+DNM=3350                # Moon density
 
-escala=0.0000001
+xmax=1.5*DES            # x max screen
+xc=0                    # x Center screen coordinate
+yc=0                    # y Center screen coordinate (positive downwards)
 
+centro=np.array([xc,yc])
+centrop=np.array([ANCHOP/2,ALTOP/2])
+escala=ANCHOP/2/(xmax-xc)
+escala_r=20
+escala_v=1E7            # velocity vector scale
+escala_f=5E-16          # force vector scale
+escala_a=1E12           # acceleration vecto scale
+salto=3                 # gap between displayed steps
 
-n=8                     # no. particles
-nt=500                  # no. time steps
-ts=5000                 # time step
+def dibujavector(v,color):
+    x=np.array((0,v[0]))
+    y=np.array((0,v[1]))        
+    pygame.draw.line(ventana,color,(0,v[0],0,v[1]),width=1)
+
+def dibujavectorpunto(v,punto,color):
+    dpunto1= centrop+(punto+centro)*escala
+    dpunto2= centrop+(punto+v+centro)*escala
+    pygame.draw.line(ventana,color,dpunto1,dpunto2,width=1)
+
+def dibujacirculo(punto,radio,color):
+    #dpunto=np.zeros(2)
+    dpunto=centrop+(punto+centro)*escala
+    dradio=int(radio*escala)
+    if dradio < 1:
+        dradio =1
+    pygame.draw.circle(ventana,color,dpunto,dradio,width=1)
+
+def modulo(v):
+    modulo=(v[0]**2+v[1]**2)**0.5
+    return modulo
+
+def radio(masa,densidad):
+    radio=((masa/densidad*3/4/np.pi)**(1/3))
+    return radio
+
+n=5                     # no. particles
+nt=5000                 # no. time steps
+ts=50000                # time step
 t=np.zeros(nt)          # time vector
 
-m=np.zeros(n)           # particle masses vector  
-
+m=np.zeros(n)           # particle masses array  
+dn=np.zeros(n)          # particle densities array
 
 d=np.zeros((n,nt,2))    # position vectors 
 v=np.zeros((n,nt,2))    # velocity vectors
 a=np.zeros((n,nt,2))    # acceleration vectors
 f=np.zeros((n,nt,2))    # force vectors
-vaux=np.zeros((n,nt,2))    # force vectors
+vaux=np.zeros((n,nt,2)) # force vectors
 
 print('---------------------------------')
 
@@ -83,11 +93,19 @@ print('---------------------------------')
 for i in range (nt):
     t[i]=i*ts
 
-for i in range(n):          # Condciones iniciales aleatorias
-    m[i]=random.uniform(8000,12000)*ME
-    d[i][0]=[random.uniform(0.1,0.2)*DES,random.uniform(0.1,0.2)*DES]
-    v[i][0]=[random.uniform(-1,1)*VES,random.uniform(-1,1)*VES]
-    print(d[i][0][1])
+# for i in range(n):          # Condciones iniciales aleatorias
+#     m[i]=random.uniform(8000,12000)*ME
+#     d[i][0]=[random.uniform(0.1,0.2)*DES,random.uniform(0.1,0.2)*DES]
+#     v[i][0]=[random.uniform(-1,1)*VES,random.uniform(-1,1)*VES]
+#     print(d[i][0][1])
+
+
+for i in range (n):            # Symetric initial conditions
+    m[i]=MS/20
+    d[i][0]=[DES*np.sin(2*np.pi*i/n),DES*np.cos(2*np.pi*i/n)]
+    v[i][0]=[6*VME*(-np.cos(2*np.pi*i/n)),6*VME*np.sin(2*np.pi*i/n)]
+    dn[i]=DNE
+    #print(d[i,0], v[i,0])
 
 
 # m[0]=MS                   # Condiciones iniciales Sistema Sol, Tierra, Luna
@@ -101,6 +119,10 @@ for i in range(n):          # Condciones iniciales aleatorias
 # v[0,0]=[0,0]
 # v[1,0]=[VES,0]
 # v[2,0]=[VES+VME,0]
+
+# dn[0]=DNS
+# dn[1]=DNE
+# dn[2]=DNM
 
 
 for k in range(nt-1):
@@ -118,32 +140,16 @@ for k in range(nt-1):
         a[i,k]=f[i,k]/m[i]
         v[i,k+1]=v[i,k]+a[i,k]*(t[k+1]-t[k])
         d[i,k+1]=d[i,k]+(v[i,k]+v[i,k+1])/2*(t[k+1]-t[k])+0.5*a[i,k]*(t[k+1]-t[k])**2
+        if k % salto == 1 and k>salto:
+            dibujacirculo(d[i,k],radio(m[i],dn[i])*escala_r,pink)
+            dibujavectorpunto(f[i,k]*escala_f,d[i,k],yellow)
+            dibujavectorpunto(v[i,k]*escala_v,d[i,k],cyan)
+            dibujacirculo(d[i,k-salto],radio(m[i],dn[i])*escala_r,black)
+            dibujavectorpunto(f[i,k-salto]*escala_f,d[i,k-salto],black)
+            dibujavectorpunto(v[i,k-salto]*escala_v,d[i,k-salto],black)
+            dibujacirculo(d[i,k-salto],radio(m[i],dn[i])*escala_r/10,grey)
+            
+        pygame.display.flip()
         
-for i in range(n):
-    for j in range(nt):
-        x=d[i,j][0]
-        y=d[i,j][1]
-        plt.plot(x,y,',')
-plt.show()
-
-#        print(i,k,f[i,k],d[i,k])
-#plt.show()
-
-# for i in range(n):
-#     plotvector(d[i,0])
-# plt.show()
-
-# for i in range(n):
-#     plotvector(f[i,0])
-# plt.show()
-
-# for i in range(n):
-#     plotvectorpunto(f[i,0]*escala,d[i,0])
-#     plotvector(d[i,0])
-# plt.show()
-
-#print(t)
-#print(v)
-#print(a[0][0])
-#print(G, ME, MS)
-
+print(radio(ME,DNE))
+print(radio(MS,DNS))
